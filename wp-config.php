@@ -1,4 +1,13 @@
 <?php
+/** Enable W3 Total Cache */
+define('WP_CACHE', true); // Added by W3 Total Cache
+
+
+// Site settings
+
+define('WP_HOME','http://35.177.82.249/corp_wp');
+define('WP_SITEURL','http://35.177.82.249/corp_wp');
+
 /**
  * The base configuration for WordPress
  *
