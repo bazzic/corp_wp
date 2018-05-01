@@ -1,10 +1,10 @@
 <?php
-/** Enable W3 Total Cache */
-define('WP_CACHE', true); // Added by W3 Total Cache
 
 
 // Site settings
 
+define('WP_CACHE', true);
+define( 'WPCACHEHOME', '/var/www/html/corp_wp/wp-content/plugins/wp-super-cache/' );
 define('WP_HOME','http://35.177.82.249/corp_wp');
 define('WP_SITEURL','http://35.177.82.249/corp_wp');
 

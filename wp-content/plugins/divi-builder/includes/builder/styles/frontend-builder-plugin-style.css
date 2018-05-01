@@ -191,6 +191,7 @@
   /* Accent Color */
   /* Containers */
   /* Columns */
+  /* Module */
   /* Button Styles */
   /* Button Hover */
   /* Button Hover Light Text */
@@ -1950,6 +1951,9 @@
 .et_divi_builder #et_builder_outer_content .et_pb_css_mix_blend_mode_passthrough {
   mix-blend-mode: unset !important;
 }
+.et_divi_builder #et_builder_outer_content .et_pb_module_inner {
+  position: relative;
+}
 .et_divi_builder #et_builder_outer_content .et_pb_button {
   font-size: 20px;
   font-weight: 500;
@@ -2260,18 +2264,35 @@
   margin-right: 0;
   margin-left: 20px;
 }
-.et_divi_builder #et_builder_outer_content .et_pb_pricing > .box-shadow-overlay {
-  z-index: 11;
+.et_divi_builder #et_builder_outer_content .et_pb_pricing_table_wrap {
+  display: block;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: row;
+  -ms-flex-direction: row;
+  flex-direction: row;
+  -webkit-flex-wrap: wrap;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  align-items: flex-start;
 }
 .et_divi_builder #et_builder_outer_content .et_pb_pricing_table {
   float: left;
   width: 33.33%;
+  max-width: 34%;
+  -webkit-flex: 1 1 auto;
+  -ms-flex: 1 1 auto;
+  flex: 1 1 auto;
   border: 1px solid #bebebe;
   background-color: #fcfcfc;
   padding-bottom: 30px;
   text-align: center;
   margin: 30px -1px 0 0;
   position: relative;
+}
+.et_divi_builder #et_builder_outer_content .et_pb_pricing > .box-shadow-overlay {
+  z-index: 11;
 }
 .et_divi_builder #et_builder_outer_content .et_pb_featured_table {
   background-color: #fff;
@@ -2287,20 +2308,24 @@
 }
 .et_divi_builder #et_builder_outer_content .et_pb_column_4_4 .et_pb_pricing_table {
   width: 25%;
+  max-width: 25.5%;
 }
 .et_divi_builder #et_builder_outer_content .et_pb_column_4_4 .et_pb_pricing_3 .et_pb_pricing_table {
   width: 33.33%;
+  max-width: 34%;
 }
 .et_divi_builder #et_builder_outer_content .et_pb_pricing_2 .et_pb_pricing_table,
 .et_divi_builder #et_builder_outer_content .et_pb_column_2_3 .et_pb_pricing_table,
 .et_divi_builder #et_builder_outer_content .et_pb_column_1_2 .et_pb_pricing_table {
   width: 50%;
+  max-width: 50.5%;
 }
 .et_divi_builder #et_builder_outer_content .et_pb_pricing_1 .et_pb_pricing_table,
 .et_divi_builder #et_builder_outer_content .et_pb_column_3_8 .et_pb_pricing_table,
 .et_divi_builder #et_builder_outer_content .et_pb_column_1_3 .et_pb_pricing_table,
 .et_divi_builder #et_builder_outer_content .et_pb_column_1_4 .et_pb_pricing_table {
   width: 100%;
+  max-width: none;
   margin: 0 0 30px;
 }
 .et_divi_builder #et_builder_outer_content .et_pb_pricing_1 .et_pb_pricing_table:last-child,
@@ -4850,6 +4875,10 @@
   top: 50%;
   bottom: auto;
 }
+.et_divi_builder #et_builder_outer_content .et_pb_slide_video video.wp-video-shortcode,
+.et_divi_builder #et_builder_outer_content .et_pb_slide_video .wp-video-shortcode video {
+  height: auto;
+}
 .et_divi_builder #et_builder_outer_content .et_pb_slider {
   position: relative;
   overflow: hidden;
@@ -4937,9 +4966,6 @@
 }
 .et_divi_builder #et_builder_outer_content .et_pb_bg_layout_light .et-pb-controllers a {
   background-color: rgba(0, 0, 0, 0.3);
-}
-.et_divi_builder #et_builder_outer_content .et-pb-controllers .et-pb-active-control {
-  background-color: #fff !important;
 }
 .et_divi_builder #et_builder_outer_content .et-pb-arrow-prev:hover,
 .et_divi_builder #et_builder_outer_content .et-pb-arrow-next:hover {
@@ -5598,6 +5624,7 @@
   margin-right: auto;
 }
 .et_divi_builder #et_builder_outer_content .et_pb_fullscreen .et_pb_fullwidth_header_container {
+  height: 10px;
   min-height: 100vh;
   width: 80%;
   max-width: none;
@@ -6372,24 +6399,9 @@
   right: 0;
   margin-right: 0;
 }
-.et_divi_builder #et_builder_outer_content .et_pb_slider_with_text_overlay h2.et_pb_slide_title,
-.et_divi_builder #et_builder_outer_content .et_pb_slider_with_text_overlay .et_pb_slide_title {
-  padding: 30px 30px 0 30px;
-  -webkit-border-top-left-radius: 3px;
-  -webkit-border-top-right-radius: 3px;
-  -moz-border-radius-topleft: 3px;
-  -moz-border-radius-topright: 3px;
-  border-top-left-radius: 3px;
-  border-top-right-radius: 3px;
-}
-.et_divi_builder #et_builder_outer_content .et_pb_slider_with_text_overlay .et_pb_slide_content {
-  padding: 0 30px 30px;
-  -webkit-border-bottom-right-radius: 3px;
-  -webkit-border-bottom-left-radius: 3px;
-  -moz-border-radius-bottomright: 3px;
-  -moz-border-radius-bottomleft: 3px;
-  border-bottom-right-radius: 3px;
-  border-bottom-left-radius: 3px;
+.et_divi_builder #et_builder_outer_content .et_pb_slider_with_text_overlay .et_pb_text_overlay_wrapper {
+  padding: 30px;
+  border-radius: 3px;
 }
 .et_divi_builder #et_builder_outer_content .et_pb_slider_with_overlay .et_pb_slide_overlay_container {
   position: absolute;
@@ -6409,13 +6421,11 @@
   padding-top: 5px;
 }
 .et_divi_builder #et_builder_outer_content .et_pb_bg_layout_light.et_pb_slider_with_overlay .et_pb_slide_overlay_container,
-.et_divi_builder #et_builder_outer_content .et_pb_bg_layout_light.et_pb_slider_with_text_overlay .et_pb_slide_title,
-.et_divi_builder #et_builder_outer_content .et_pb_bg_layout_light.et_pb_slider_with_text_overlay .et_pb_slide_content {
+.et_divi_builder #et_builder_outer_content .et_pb_bg_layout_light.et_pb_slider_with_text_overlay .et_pb_text_overlay_wrapper {
   background-color: rgba(255, 255, 255, 0.9);
 }
 .et_divi_builder #et_builder_outer_content .et_pb_bg_layout_dark.et_pb_slider_with_overlay .et_pb_slide_overlay_container,
-.et_divi_builder #et_builder_outer_content .et_pb_bg_layout_dark.et_pb_slider_with_text_overlay .et_pb_slide_title,
-.et_divi_builder #et_builder_outer_content .et_pb_bg_layout_dark.et_pb_slider_with_text_overlay .et_pb_slide_content {
+.et_divi_builder #et_builder_outer_content .et_pb_bg_layout_dark.et_pb_slider_with_text_overlay .et_pb_text_overlay_wrapper {
   background-color: rgba(0, 0, 0, 0.3);
 }
 .et_divi_builder #et_builder_outer_content .et_pb_post_slider.et_pb_bg_layout_dark .post-meta,
@@ -6425,12 +6435,6 @@
 .et_divi_builder #et_builder_outer_content .et_pb_post_slider.et_pb_bg_layout_light .post-meta,
 .et_divi_builder #et_builder_outer_content .et_pb_post_slider.et_pb_bg_layout_light .post-meta a {
   color: #333 !important;
-}
-.et_divi_builder #et_builder_outer_content .et_pb_post_slider.et_pb_bg_layout_dark {
-  background-color: #2ea3f2;
-}
-.et_divi_builder #et_builder_outer_content .et_pb_post_slider.et_pb_bg_layout_light {
-  background-color: #f5f5f5;
 }
 .et_divi_builder #et_builder_outer_content .et_pb_post_slider .et_pb_slide.et-pb-active-slide .et_pb_slide_description,
 .et_divi_builder #et_builder_outer_content .et_pb_post_slider .et_pb_slide.et-pb-active-slide .et_pb_slide_image {
@@ -9831,9 +9835,11 @@
   }
   .et_divi_builder #et_builder_outer_content .et_pb_column .et_pb_pricing_table {
     width: 50% !important;
+    max-width: 50.5% !important;
   }
   .et_divi_builder #et_builder_outer_content .et_pb_column .et_pb_pricing_1 .et_pb_pricing_table {
     width: 100% !important;
+    max-width: none !important;
   }
   .et_divi_builder #et_builder_outer_content .et_pb_column .et_pb_pricing_table:nth-child(2n+1) {
     clear: both;
@@ -10355,6 +10361,7 @@
   }
   .et_divi_builder #et_builder_outer_content .et_pb_column .et_pb_pricing_table {
     width: 100% !important;
+    max-width: 100% !important;
     margin: 0 0 30px !important;
   }
   .et_divi_builder #et_builder_outer_content .et_pb_column .et_pb_pricing_table:last-child,
@@ -11820,6 +11827,12 @@
   height: 100%;
   z-index: 10;
   pointer-events: none;
+}
+.et_divi_builder #et_builder_outer_content .et_pb_section > .box-shadow-overlay ~ .et_pb_row {
+  z-index: 11;
+}
+.et_divi_builder #et_builder_outer_content .et_pb_row > .box-shadow-overlay {
+  z-index: 8;
 }
 .et_divi_builder #et_builder_outer_content .has-box-shadow-overlay {
   position: relative;
