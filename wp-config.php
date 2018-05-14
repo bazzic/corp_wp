@@ -5,8 +5,8 @@
 
 define('WP_CACHE', true);
 define( 'WPCACHEHOME', '/var/www/html/corp_wp/wp-content/plugins/wp-super-cache/' );
-define('WP_HOME','http://35.177.82.249/corp_wp');
-define('WP_SITEURL','http://35.177.82.249/corp_wp');
+define('WP_HOME','https://www.bazzic.com');
+define('WP_SITEURL','https://www.bazzic.com');
 
 /**
  * The base configuration for WordPress
