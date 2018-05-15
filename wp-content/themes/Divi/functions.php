@@ -9025,3 +9025,14 @@ function print_menu_shortcode($atts, $content = null) {
     return wp_nav_menu( array( 'menu' => $name, 'echo' => false ) );
 }
 add_shortcode('menu', 'print_menu_shortcode');
+
+add_action('template_redirect', 'bazzic_remove_wp_archives');
+ 
+/* Remove archives */
+function bazzic_remove_wp_archives(){
+  //If we are on category or tag or date or author archive
+  if( is_category() || is_tag() || is_date() || is_author() ) {
+    global $wp_query;
+    $wp_query->set_404(); //set to 404 not found page
+  }
+}
