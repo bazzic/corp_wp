@@ -3298,7 +3298,7 @@
 					}
 
 					if ( $name.length > 0 && redirect_query.indexOf( 'name' ) > -1 ) {
-						query.name = $name.val();
+						query.first_name = $name.val();
 					}
 
 					if ( $lastname.length > 0 && redirect_query.indexOf( 'last_name' ) > -1 ) {
