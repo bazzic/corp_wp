@@ -69,10 +69,16 @@ function et_fb_get_comments_markup() {
 	// Modify submit button to be advanced button style ready
 	add_filter( 'comment_form_submit_button', 'et_fb_comments_submit_button' );
 
+	// Custom action before calling comments_template.
+	do_action( 'et_fb_before_comments_template' );
+
 	ob_start();
 	comments_template( '', true );
 	$comments_content = ob_get_contents();
 	ob_end_clean();
+
+	// Custom action after calling comments_template.
+	do_action( 'et_fb_after_comments_template' );
 
 	// remove all the actions and filters to not break the default comments section from theme
 	remove_filter( 'comments_template', 'et_fb_comments_template' );
@@ -880,7 +886,7 @@ function et_fb_backend_helpers() {
 		),
 		'acceptableCSSStringValues'    => et_builder_get_acceptable_css_string_values( 'all' ),
 		'abTesting' => et_builder_ab_options( $post->ID ),
-		'customModuleCredits' => ET_Builder_Element::get_custom_modules_credits(),
+		'customModuleCredits' => ET_Builder_Element::get_custom_modules_credits( $post_type ),
 	);
 
 	$moduolesI10n = ET_Builder_Element::get_modules_i10n( $post_type );
@@ -1126,6 +1132,7 @@ function et_fb_backend_helpers() {
 			'tabs'                     => array(
 				'general'              => esc_html__( 'Content', 'et_builder' ),
 				'design'               => esc_html__( 'Design', 'et_builder' ),
+				'advanced'             => esc_html__( 'Design', 'et_builder' ),
 				'css'                  => esc_html__( 'Advanced', 'et_builder' ),
 			),
 			'additionalButton'         => array(
@@ -1156,10 +1163,15 @@ function et_fb_backend_helpers() {
 			),
 			'cssText'                  => esc_html__( 'CSS', 'et_builder'),
 			'background'               => array(
-				'addColor'    => esc_html__( 'Add Background Color', 'et_builder' ),
-				'addGradient' => esc_html__( 'Add Background Gradient', 'et_builder' ),
-				'addImage'    => esc_html__( 'Add Background Image', 'et_builder' ),
-				'addVideo'    => esc_html__( 'Add Background Video', 'et_builder' ),
+				'addColor'       => esc_html__( 'Add Background Color', 'et_builder' ),
+				'addGradient'    => esc_html__( 'Add Background Gradient', 'et_builder' ),
+				'addImage'       => esc_html__( 'Add Background Image', 'et_builder' ),
+				'addVideo'       => esc_html__( 'Add Background Video', 'et_builder' ),
+				'color'          => esc_html__( 'Background Color', 'et_builder' ),
+				'gradient'       => esc_html__( 'Background Gradient', 'et_builder' ),
+				'gradientColors' => esc_html__( 'Background Gradient Colors', 'et_builder' ),
+				'image'          => esc_html__( 'Background Image', 'et_builder' ),
+				'video'          => esc_html__( 'Background Video', 'et_builder' ),
 			),
 			'responsiveTabs' => array(
 				'desktop' => esc_html__( 'Desktop', 'et_builder' ),
@@ -1174,6 +1186,8 @@ function et_fb_backend_helpers() {
 			'unlock'          => esc_html__( 'Unlock', 'et_builder' ),
 			'copy'            => esc_html__( 'Copy', 'et_builder' ),
 			'paste'           => esc_html__( 'Paste', 'et_builder' ),
+			'reset'           => esc_html__( 'Reset', 'et_builder' ),
+			'styles'          => esc_html__( 'Styles', 'et_builder' ),
 			'copyStyle'       => esc_html__( 'Copy Style', 'et_builder' ),
 			'pasteStyle'      => esc_html__( 'Paste Style', 'et_builder' ),
 			'disable'         => esc_html__( 'Disable', 'et_builder' ),
@@ -1189,6 +1203,10 @@ function et_fb_backend_helpers() {
 			'disableGlobal'   => esc_html__( 'Disable Global', 'et_builder' ),
 			'collapse'        => esc_html__( 'Collapse', 'et_builder' ),
 			'expand'          => esc_html__( 'Expand', 'et_builder' ),
+			'toggle'          => esc_html__( 'Toggle', 'et_builder' ),
+			'tab'             => esc_html__( 'Tab', 'et_builder' ),
+			'option'          => esc_html__( 'Option', 'et_builder' ),
+			'item'            => esc_html__( 'Item', 'et_builder' ),
 		),
 		'tooltips'            => array(
 			'insertModule'     => esc_html__( 'Insert Module', 'et_builder' ),
