@@ -9,3 +9,11 @@ function print_menu_shortcode($atts, $content = null) {
     return wp_nav_menu( array( 'menu' => $name, 'echo' => false ) );
 }
 add_shortcode('menu', 'print_menu_shortcode');
+
+function monarchShortcode() {
+  $monarch = $GLOBALS['et_monarch'];
+  $monarch_options = $monarch->monarch_options;
+  return $monarch->generate_inline_icons('et_social_inline_top');
+}
+
+add_shortcode('social_share', 'monarchShortcode');
