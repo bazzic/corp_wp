@@ -13,134 +13,62 @@
  */
 final class BackWPup_Destination_Dropbox_Downloader implements BackWPup_Destination_Downloader_Interface {
 
-	/**
-	 * Capability
-	 *
-	 * @var string The capability the user should have in order to download the file.
-	 */
-	private static $capability = 'backwpup_backups_download';
+	const OPTION_ROOT = 'dropboxroot';
+	const OPTION_TOKEN = 'dropboxtoken';
 
 	/**
-	 * Service
-	 *
-	 * @since 3.5.0
-	 *
-	 * @var mixed Depending on the service. It will be an instance of that class
+	 * @var \BackWpUp_Destination_Downloader_Data
 	 */
-	private $service;
+	private $data;
 
 	/**
-	 * Job ID
-	 *
-	 * @since 3.5.0
-	 *
-	 * @var int The job Identifier to use to retrieve the job informations
+	 * @var resource
 	 */
-	private $job_id;
+	private $local_file_handler;
 
 	/**
-	 * File Path
-	 *
-	 * @since 3.5.0
-	 *
-	 * @var string From where download the file content
+	 * @var BackWPup_Destination_Dropbox_API
 	 */
-	private $file_path;
+	private $dropbox_api;
 
 	/**
-	 * Destination
+	 * BackWPup_Destination_Dropbox_Downloader constructor
 	 *
-	 * @since 3.5.0
+	 * @param \BackWpUp_Destination_Downloader_Data $data
 	 *
-	 * @var string Where store the file content
+	 * @throws \BackWPup_Destination_Dropbox_API_Exception
 	 */
-	private $destination;
+	public function __construct( BackWpUp_Destination_Downloader_Data $data ) {
+
+		$this->data = $data;
+
+		$this->dropbox_api();
+	}
 
 	/**
-	 * File handle
-	 *
-	 * @var resource A handle to the file being downloaded
-	 */
-	private $file_handle;
-
-	/**
-	 * Destructor
-	 *
-	 * Closes file handle if opened.
+	 * Clean up things
 	 */
 	public function __destruct() {
 
-		if ( $this->file_handle ) {
-			fclose( $this->file_handle );
-		}
+		fclose( $this->local_file_handler );
 	}
 
 	/**
 	 * @inheritdoc
 	 */
-	public function with_service() {
+	public function download_chunk( $start_byte, $end_byte ) {
 
-		$this->service = new \BackWPup_Destination_Dropbox_API(
-			\BackWPup_Option::get( $this->job_id, 'dropboxroot' )
-		);
-
-		$this->service->setOAuthTokens( \BackWPup_Option::get( $this->job_id, 'dropboxtoken' ) );
-
-		return $this;
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function download() {
-
-		if ( ! current_user_can( self::$capability ) ) {
-			wp_die( 'Cheatin&#8217; huh?' );
-		}
+		$this->local_file_handler( $start_byte );
 
 		try {
-			backwpup_wpfilesystem()->put_contents(
-				$this->destination,
-				$this->service->download( array( 'path' => $this->file_path ) )
-			);
-		} catch ( \Exception $e ) {
-			BackWPup_Admin::message( 'Dropbox: ' . $e->getMessage() );
-		}
-
-		if ( ! is_file( $this->destination ) ) {
-			throw new \BackWPup_Destination_Download_Exception();
-		}
-
-		return $this;
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function downloadChunk( $startByte, $endByte ) {
-
-		if ( ! current_user_can( self::$capability ) ) {
-			wp_die( 'Cheatin&#8217; huh?' );
-		}
-
-		try {
-			if ( is_null( $this->file_handle ) ) {
-				// Open file; write mode if $startByte is 0, else append
-				$this->file_handle = fopen( $this->destination, $startByte == 0 ? 'wb' : 'ab' );
-
-				if ( $this->file_handle === false ) {
-					throw new \RuntimeException( __( 'File could not be opened for writing.', 'backwpup' ) );
-				}
-			}
-
-			$data = $this->service->download(
-				array( 'path' => $this->file_path ),
-				$startByte,
-				$endByte
+			$data = $this->dropbox_api->download(
+				array( 'path' => $this->data->source_file_path() ),
+				$start_byte,
+				$end_byte
 			);
 
-			$bytes = fwrite( $this->file_handle, $data );
-			if ( $bytes === false ) {
+			$bytes = (int) fwrite( $this->local_file_handler, $data );
+			if ( $bytes === 0 ) {
 				throw new \RuntimeException( __( 'Could not write data to file.', 'backwpup' ) );
 			}
 		} catch ( \Exception $e ) {
@@ -151,40 +79,44 @@ final class BackWPup_Destination_Dropbox_Downloader implements BackWPup_Destinat
 	/**
 	 * @inheritdoc
 	 */
-	public function for_job( $job_id ) {
+	public function calculate_size() {
 
-		$this->job_id = $job_id;
-
-		return $this;
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function from( $file_path ) {
-
-		$this->file_path = $file_path;
-
-		return $this;
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function to( $destination ) {
-
-		$this->destination = $destination;
-
-		return $this;
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function getSize() {
-
-		$metadata = $this->service->filesGetMetadata( array( 'path' => $this->file_path ) );
+		$metadata = $this->dropbox_api->filesGetMetadata( array( 'path' => $this->data->source_file_path() ) );
 
 		return $metadata['size'];
+	}
+
+	/**
+	 * Set local file hanlder
+	 *
+	 * @param int $start_byte
+	 */
+	private function local_file_handler( $start_byte ) {
+
+		if ( is_resource( $this->local_file_handler ) ) {
+			return;
+		}
+
+		// Open file; write mode if $start_byte is 0, else append
+		$this->local_file_handler = fopen( $this->data->local_file_path(), $start_byte == 0 ? 'wb' : 'ab' );
+
+		if ( ! is_resource( $this->local_file_handler ) ) {
+			throw new \RuntimeException( __( 'File could not be opened for writing.', 'backwpup' ) );
+		}
+	}
+
+	/**
+	 * Set the dropbox api instance
+	 *
+	 * @return $this
+	 * @throws \BackWPup_Destination_Dropbox_API_Exception
+	 */
+	private function dropbox_api() {
+
+		$this->dropbox_api = new \BackWPup_Destination_Dropbox_API(
+			\BackWPup_Option::get( $this->data->job_id(), self::OPTION_ROOT )
+		);
+
+		$this->dropbox_api->setOAuthTokens( \BackWPup_Option::get( $this->data->job_id(), self::OPTION_TOKEN ) );
 	}
 }

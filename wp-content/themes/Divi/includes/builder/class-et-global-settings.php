@@ -16,6 +16,8 @@ class ET_Global_Settings {
 	}
 
 	private static function set_values() {
+		$hover = et_pb_hover_options();
+
 		$font_defaults_h1 = array(
 			'size'           => '30px',
 			'letter_spacing' => '0px',
@@ -75,8 +77,8 @@ class ET_Global_Settings {
 			'all_buttons_border_radius'                              => '3',
 			'all_buttons_spacing'                                    => '0',
 			'all_buttons_font_style'                                 => '',
-			'all_buttons_border_radius_hover'                        => '3',
-			'all_buttons_spacing_hover'                              => '0',
+			$hover->get_hover_field( 'all_buttons_border_radius' )   => '3',
+			$hover->get_hover_field( 'all_buttons_spacing' )         => '0',
 			// Global: Background Gradients
 			'all_background_gradient_start'                          => $background_gradient_defaults['start'],
 			'all_background_gradient_end'                            => $background_gradient_defaults['end'],
@@ -464,6 +466,9 @@ class ET_Global_Settings {
 			'et_pb_signup-background_position'                       => $background_image_defaults['position'],
 			'et_pb_signup-background_repeat'                         => $background_image_defaults['repeat'],
 			'et_pb_signup-background_blend'                          => $background_image_defaults['blend'],
+			'et_pb_signup-form_field_font_size'                      => '14',
+			'et_pb_signup-form_field_line_height'                    => $font_defaults['line_height'],
+			'et_pb_signup_form-form_field_letter_spacing'            => $font_defaults['letter_spacing'],
 			// Module: Slider Item (Slide)
 			'et_pb_slide-header_font_size'                           => '26px',
 			'et_pb_slide-header_color'                               => '#ffffff',

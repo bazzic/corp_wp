@@ -118,6 +118,17 @@ $dashboard_options_all = array(
 			'validation_type'      => 'simple_text',
 			'hint_text'            => et_get_safe_localization( sprintf( __( 'Disable this option to remove the Google Maps API script from your Divi Builder Pages. This may improve compatibility with third party plugins that also enqueue this script. Please Note: Modules that rely on the Google Maps API in order to function properly, such as the Maps and Fullwidth Maps Modules, will still be available but will not function while this option is disabled (unless you manually add Google Maps API script).', 'et_builder_plugin' ), 'http://www.elegantthemes.com/gallery/divi/documentation/map/#gmaps-api-key' ) ),
 		),
+		
+		'option_use_google_fonts' => array(
+			'type'                 => 'checkbox',
+			'default'              => 'on',
+			'value'                => 'on',
+			'title'                => esc_html__( 'Use Google Fonts', 'et_builder_plugin' ),
+			'name'                 => 'use_google_fonts',
+			'class'                => 'use_google_fonts',
+			'validation_type'      => 'simple_text',
+			'hint_text'            => et_get_safe_localization( __( 'Disable this option to remove the Google Fonts from your Divi Builder Pages.', 'et_builder_plugin' ) ),
+		),
 
 		'update_button' => array(
 			'type'            => 'button',
@@ -227,6 +238,7 @@ $assigned_options = array(
 		$dashboard_options_all[ 'google_api' ][ 'section_start' ],
 			$dashboard_options_all[ 'google_api' ][ 'option' ],
 			$dashboard_options_all[ 'google_api' ][ 'option_maps_script_enqueue' ],
+			$dashboard_options_all[ 'google_api' ][ 'option_use_google_fonts' ],
 			$dashboard_options_all[ 'google_api' ][ 'update_button' ],
 			$dashboard_options_all[ 'end_of_section' ],
 	),

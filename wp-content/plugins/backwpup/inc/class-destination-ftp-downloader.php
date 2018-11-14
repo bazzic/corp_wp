@@ -15,84 +15,128 @@
 final class BackWPup_Destination_Ftp_Downloader implements BackWPup_Destination_Downloader_Interface {
 
 	/**
-	 * Capability
-	 *
-	 * @var string The capability the user should have in order to download the file.
+	 * @var \BackWpUp_Destination_Downloader_Data
 	 */
-	private static $capability = 'backwpup_backups_download';
+	private $data;
 
 	/**
-	 * Service
-	 *
-	 * @since 3.5.0
-	 *
-	 * @var mixed Depending on the service. It will be an instance of that class
+	 * @var resource
 	 */
-	private $service;
+	private $source_file_handler;
 
 	/**
-	 * Job ID
-	 *
-	 * @since 3.5.0
-	 *
-	 * @var int The job Identifier to use to retrieve the job informations
+	 * @var resource
 	 */
-	private $job_id;
+	private $local_file_handler;
 
 	/**
-	 * File Path
-	 *
-	 * @since 3.5.0
-	 *
-	 * @var string From where download the file content
+	 * @var BackWPup_Destination_Ftp_Connect
 	 */
-	private $file_path;
+	private $ftp_resource;
 
 	/**
-	 * Destination
-	 *
-	 * @since 3.5.0
-	 *
-	 * @var string Where store the file content
+	 * BackWPup_Destination_Ftp_Downloader constructor
 	 */
-	private $destination;
+	public function __construct( BackWpUp_Destination_Downloader_Data $data ) {
+
+		$this->data = $data;
+
+		$this->ftp_resource();
+	}
 
 	/**
-		 * File handle
-		 *
-		 * @var resource A handle to the file being downloaded
-		 */
-	private $file_handle;
-	
-	/**
-		 * FTP handle
-		 *
-		 * @var resource The handle to the FTP file.
-		 */
-	private $ftp_handle;
-	
-	/**
-		 * Close the file handle on destruct
-		 */
+	 * Clean up things
+	 */
 	public function __destruct() {
 
-		if ( $this->file_handle ) {
-			fclose( $this->file_handle );
-		}
-		
-		if ( $this->ftp_handle ) {
-			fclose( $this->ftp_handle );
-		}
+		fclose( $this->source_file_handler );
+		fclose( $this->local_file_handler );
 	}
-	
+
 	/**
 	 * @inheritdoc
 	 */
-	public function with_service() {
+	public function download_chunk( $start_byte, $end_byte ) {
 
-		$opts = (object) BackWPup_Option::get_job( $this->job_id );
+		$this->source_file_handler( $start_byte );
+		$this->local_file_handler( $start_byte );
 
-		$this->service = new BackWPup_Destination_Ftp_Connect(
+		$bytes = (int) stream_copy_to_stream(
+			$this->source_file_handler,
+			$this->local_file_handler,
+			$end_byte - $start_byte + 1,
+			0
+		);
+
+		if ( $bytes === 0 ) {
+			throw new \RuntimeException( __( 'Could not write data to file.', 'backwpup' ) );
+		}
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function calculate_size() {
+
+		$resource = $this->ftp_resource
+			->connect()
+			->resource();
+
+		$size = ftp_size( $resource, $this->data->source_file_path() );
+		ftp_close( $resource );
+
+		return $size;
+	}
+
+	/**
+	 * Set the source file handler
+	 *
+	 * @param int $start_byte
+	 */
+	private function source_file_handler( $start_byte ) {
+
+		if ( is_resource( $this->source_file_handler ) ) {
+			return;
+		}
+
+		$ctx = stream_context_create( array( 'ftp' => array( 'resume_pos' => $start_byte ) ) );
+		$url = $this->ftp_resource->getURL( $this->data->source_file_path(), false, $ctx );
+
+		$this->source_file_handler = fopen( $url, 'r' );
+
+		if ( ! is_resource( $this->source_file_handler ) ) {
+			throw new \RuntimeException( __( 'Cannot open FTP file for download.', 'backwpup' ) );
+		}
+	}
+
+	/**
+	 * Set the local file handler
+	 *
+	 * @param int $start_byte
+	 */
+	private function local_file_handler( $start_byte ) {
+
+		if ( is_resource( $this->local_file_handler ) ) {
+			return;
+		}
+
+		$this->local_file_handler = fopen( $this->data->local_file_path(), $start_byte === 0 ? 'wb' : 'ab' );
+
+		if ( ! is_resource( $this->local_file_handler ) ) {
+			throw new \RuntimeException( __( 'File could not be opened for writing.', 'backwpup' ) );
+		}
+	}
+
+	/**
+	 * Set the Ftp resource
+	 *
+	 * @return void
+	 */
+	private function ftp_resource() {
+
+		$opts = (object) BackWPup_Option::get_job( $this->data->job_id() );
+
+		$this->ftp_resource = new BackWPup_Destination_Ftp_Connect(
 			$opts->ftphost,
 			$opts->ftpuser,
 			BackWPup_Encryption::decrypt( $opts->ftppass ),
@@ -101,118 +145,5 @@ final class BackWPup_Destination_Ftp_Downloader implements BackWPup_Destination_
 			$opts->ftpssl,
 			$opts->ftppasv
 		);
-
-		return $this;
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function download() {
-
-		if ( ! current_user_can( self::$capability ) ) {
-			wp_die( 'Cheatin&#8217; huh?' );
-		}
-
-		// Connect and Login
-		$resource = $this->service
-			->connect()
-			->resource();
-
-		// Download the file and close connection.
-		ftp_get( $resource, $this->destination, $this->file_path, FTP_BINARY );
-		ftp_close( $resource );
-
-		if ( ! is_file( $this->destination ) ) {
-			throw new \BackWPup_Destination_Download_Exception(
-				'Something went wrong during file download, seems wasn\'t possible to store it. Please see the log.'
-			);
-		}
-
-		return $this;
-	}
-	
-	/**
-		 * @inheritdoc
-		 */
-	public function downloadChunk( $startByte, $endByte ) {
-
-		if ( ! current_user_can( self::$capability ) ) {
-			wp_die( 'Cheatin&#8217; huh?' );
-		}
-
-			if ( ! $this->ftp_handle ) {
-				// Construct FTP file URL
-				$ctx = stream_context_create(array( 'ftp' => array( 'resume_pos' => $startByte ) ) );
-				$url = $this->service->getURL( $this->file_path, false, $ctx );
-				
-				$this->ftp_handle = fopen( $url, 'r' );
-				if ( $this->ftp_handle === false ) {
-					throw new \RuntimeException( __( 'Cannot open FTP file for download.', 'backwpup' ) );
-				}
-			}
-			
-			if ( ! $this->file_handle ) {
-				$this->file_handle = fopen( $this->destination, $startByte == 0 ? 'wb' : 'ab' );
-				
-				if ( $this->file_handle === false ) {
-					throw new \RuntimeException( __( 'File could not be opened for writing.', 'backwpup' ) );
-				}
-			}
-			
-			$bytes = stream_copy_to_stream(
-				$this->ftp_handle,
-				$this->file_handle,
-				$endByte - $startByte + 1,
-				0
-			);
-			if ( $bytes === false ) {
-				throw new \RuntimeException( __( 'Could not write data to file.', 'backwpup' ) );
-			}
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function for_job( $job_id ) {
-
-		$this->job_id = $job_id;
-
-		return $this;
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function from( $file_path ) {
-
-		$this->file_path = $file_path;
-
-		return $this;
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function to( $destination ) {
-
-		$this->destination = $destination;
-
-		return $this;
-	}
-	
-	/**
-		 * @inheritdoc
-		 */
-	public function getSize() {
-
-		$resource = $this->service
-		->connect()
-		->resource();
-		
-		$size = ftp_size( $resource, $this->file_path );
-		ftp_close( $resource );
-		
-		return $size;
 	}
 }

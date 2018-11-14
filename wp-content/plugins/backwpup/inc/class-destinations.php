@@ -1,11 +1,12 @@
 <?php
+
 /**
  * Base class for adding BackWPup destinations.
  *
  * @package    BackWPup
  * @subpackage BackWPup_Destinations
  * @since      3.0.0
- * @access private
+ * @access     private
  */
 abstract class BackWPup_Destinations {
 
@@ -110,10 +111,51 @@ abstract class BackWPup_Destinations {
 
 	/**
 	 * @param $jobid int
-	 * @param $get_file
+	 * @param $file_path
+	 * @param $local_file_path
 	 */
-	public function file_download( $jobid, $get_file ) {
+	public function file_download( $jobid, $file_path, $local_file_path = null ) {
 
+		$capability = 'backwpup_backups_download';
+		$filename   = untrailingslashit( BackWPup::get_plugin_data( 'temp' ) ) . '/' . basename( $local_file_path ?: $file_path );
+		$job_id     = filter_var( $_GET['jobid'], FILTER_SANITIZE_NUMBER_INT );
+
+		// Dynamically get downloader class
+		$class_name  = get_class( $this );
+		$parts       = explode( '_', $class_name );
+		$destination = array_pop( $parts );
+
+		$downloader = new BackWpup_Download_Handler(
+			new BackWPup_Download_File(
+				$filename,
+				mime_content_type( $filename ),
+				function ( \BackWPup_Download_File_Interface $obj ) use (
+					$filename,
+					$file_path,
+					$job_id,
+					$destination
+				) {
+
+					// Setup Destination service and download file.
+					$factory    = new BackWPup_Destination_Downloader_Factory();
+					$downloader = $factory->create(
+						$destination,
+						$job_id,
+						$file_path,
+						$filename
+					);
+					$downloader->download_by_chunks();
+					die();
+				},
+				$capability
+			),
+			"download-backup_{$job_id}",
+			$capability,
+			'download_file'
+		);
+
+		// Download the file.
+		$downloader->handle();
 	}
 
 	/**
@@ -154,6 +196,7 @@ abstract class BackWPup_Destinations {
 
 	/**
 	 * @param $job_settings array
+	 *
 	 * @return bool
 	 */
 	abstract public function can_run( array $job_settings );

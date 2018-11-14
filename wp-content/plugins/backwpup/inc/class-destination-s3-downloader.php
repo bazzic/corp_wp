@@ -12,200 +12,128 @@
  * @since   3.5.0
  * @package Inpsyde\BackWPup
  */
-class BackWPup_Destination_S3_Downloader implements BackWPup_Destination_Downloader_Interface {
+final class BackWPup_Destination_S3_Downloader implements BackWPup_Destination_Downloader_Interface {
+
+	const OPTION_BUCKET = 's3bucket';
+	const OPTION_ACCESS_KEY = 's3accesskey';
+	const OPTION_SECRET_KEY = 's3secretkey';
+	const OPTION_REGION = 's3region';
 
 	/**
-	 * Capability
-	 *
-	 * @var string The capability the user should have in order to download the file.
+	 * @var \BackWpUp_Destination_Downloader_Data
 	 */
-	private static $capability = 'backwpup_backups_download';
+	private $data;
 
 	/**
-	 * Service
-	 *
-	 * @since 3.5.0
-	 *
-	 * @var mixed Depending on the service. It will be an instance of that class
+	 * @var string
 	 */
-	private $service;
+	private $base_url;
 
 	/**
-	 * Job ID
-	 *
-	 * @since 3.5.0
-	 *
-	 * @var int The job Identifier to use to retrieve the job informations
+	 * @var Aws\S3\S3Client
 	 */
-	private $job_id;
+	private $s3_client;
 
 	/**
-	 * File Path
-	 *
-	 * @since 3.5.0
-	 *
-	 * @var string From where download the file content
+	 * @var resource
 	 */
-	private $file_path;
+	private $local_file_handler;
 
 	/**
-	 * Destination
+	 * BackWPup_Destination_S3_Downloader constructor
 	 *
-	 * @since 3.5.0
-	 *
-	 * @var string Where store the file content
+	 * @param \BackWpUp_Destination_Downloader_Data $data
+	 * @param string                                $base_url
 	 */
-	private $destination;
-	
+	public function __construct( BackWpUp_Destination_Downloader_Data $data, $base_url ) {
+
+		$this->data     = $data;
+		$this->base_url = $base_url;
+
+		$this->s3_client();
+	}
+
 	/**
-		 * File handle
-		 *
-		 * @var resource The file handle for writing.
-		 */
-	private $file_handle;
-	
-	/**
-		 * Closes the file handle
-		 */
+	 * Clean stuffs
+	 */
 	public function __destruct() {
 
-		if ( $this->file_handle ) {
-			fclose( $this->file_handle );
+		fclose( $this->local_file_handler );
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function download_chunk( $start_byte, $end_byte ) {
+
+		$file = $this->s3_client->getObject( array(
+			'Bucket' => BackWPup_Option::get( $this->data->job_id(), self::OPTION_BUCKET ),
+			'Key'    => $this->data->source_file_path(),
+			'Range'  => 'bytes=' . $start_byte . '-' . $end_byte,
+		) );
+
+		if ( empty( $file['ContentType'] ) || $file['ContentLength'] === 0 ) {
+			throw new \RuntimeException( __( 'Could not write data to file. Empty source file.', 'backwpup' ) );
+		}
+
+		$this->local_file_handler( $start_byte );
+
+		$bytes = (int) fwrite( $this->local_file_handler, (string) $file['Body'] );
+		if ( $bytes === 0 ) {
+			throw new \RuntimeException( __( 'Could not write data to file.', 'backwpup' ) );
 		}
 	}
 
 	/**
 	 * @inheritdoc
 	 */
-	public function download() {
+	public function calculate_size() {
 
-		if ( ! current_user_can( self::$capability ) ) {
-			wp_die( 'Cheatin&#8217; huh?' );
-		}
+		$file = $this->s3_client->getObject( array(
+			'Bucket' => BackWPup_Option::get( $this->data->job_id(), self::OPTION_BUCKET ),
+			'Key'    => $this->data->source_file_path(),
+		) );
 
-		$file = $this->service->getObject(
-			array(
-				'Bucket' => BackWPup_Option::get( $this->job_id, 's3bucket' ),
-				'Key'    => $this->file_path,
-			)
-		);
-
-		if ( $file['ContentLength'] > 0 && ! empty( $file['ContentType'] ) ) {
-			$body = $file->get( 'Body' );
-			$body->rewind();
-
-			$content = '';
-			while ( $filedata = $body->read( 1024 ) ) { // phpcs:ignore
-				$content .= $filedata;
-			}
-
-			backwpup_wpfilesystem()->put_contents( $this->destination, $content );
-		}
-
-		if ( ! is_file( $this->destination ) ) {
-			throw new \BackWPup_Destination_Download_Exception();
-		}
-
-		return $this;
-	}
-	
-	/**
-		 * @inheritdoc
-		 */
-	public function downloadChunk( $startByte, $endByte ) {
-
-		if ( ! current_user_can( self::$capability ) ) {
-			wp_die( 'Cheatin&#8217; huh?' );
-		}
-
-		$file = $this->service->getObject(
-			array(
-				'Bucket' => BackWPup_Option::get( $this->job_id, 's3bucket' ),
-				'Key'    => $this->file_path,
-				'Range' => 'bytes=' . $startByte . '-' . $endByte,
-			)
-		);
-
-		if ( $file['ContentLength'] > 0 && ! empty( $file['ContentType'] ) ) {
-			if ( ! $this->file_handle ) {
-				$this->file_handle = fopen( $this->destination, $startByte == 0 ? 'wb' : 'ab' );
-				
-				if ( $this->file_handle === false ) {
-					throw new \RuntimeException( __( 'File could not be opened for writing.', 'backwpup' ) );
-				}
-			}
-			
-			$bytes = fwrite( $this->file_handle, (string) $file['Body'] );
-			if ( $bytes === false ) {
-				throw new \RuntimeException( __( 'Could not write data to file.', 'backwpup' ) );
-			}
-		}
-
+		return (int) ( ! empty( $file['ContentType'] ) ? $file['ContentLength'] : 0 );
 	}
 
 	/**
-	 * @inheritdoc
+	 * @param int $start_byte
 	 */
-	public function with_service() {
+	private function local_file_handler( $start_byte ) {
 
-		$this->service = Aws\S3\S3Client::factory(
+		if ( is_resource( $this->local_file_handler ) ) {
+			return;
+		}
+
+		$this->local_file_handler = fopen( $this->data->local_file_path(), $start_byte == 0 ? 'wb' : 'ab' );
+
+		if ( ! is_resource( $this->local_file_handler ) ) {
+			throw new \RuntimeException( __( 'File could not be opened for writing.', 'backwpup' ) );
+		}
+	}
+
+	/**
+	 * Build S3 Client
+	 */
+	private function s3_client() {
+
+		if ( $this->s3_client ) {
+			return;
+		}
+
+		$secret_key = BackWPup_Option::get( $this->data->job_id(), self::OPTION_SECRET_KEY );
+
+		$this->s3_client = Aws\S3\S3Client::factory(
 			array(
 				'signature'                 => 'v4',
-				'key'                       => BackWPup_Option::get( $this->job_id, 's3accesskey' ),
-				'secret'                    => BackWPup_Encryption::decrypt(
-					BackWPup_Option::get( $this->job_id, 's3secretkey' )
-				),
-				'region'                    => BackWPup_Option::get( $this->job_id, 's3region' ),
+				'key'                       => BackWPup_Option::get( $this->data->job_id(), self::OPTION_ACCESS_KEY ),
+				'secret'                    => BackWPup_Encryption::decrypt( $secret_key ),
+				'region'                    => BackWPup_Option::get( $this->data->job_id(), self::OPTION_REGION ),
+				'base_url'                  => $this->base_url,
 				'scheme'                    => 'https',
 				'ssl.certificate_authority' => BackWPup::get_plugin_data( 'cacert' ),
 			)
 		);
-
-		return $this;
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function for_job( $job_id ) {
-
-		$this->job_id = $job_id;
-
-		return $this;
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function from( $file_path ) {
-
-		$this->file_path = $file_path;
-
-		return $this;
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function to( $destination ) {
-
-		$this->destination = $destination;
-
-		return $this;
-	}
-	
-	/**
-		 * @inheritdoc
-		 */
-	public function getSize() {
-
-		$object = $this->service->getObject(
-			array(
-				'Bucket' => BackWPup_Option::get( $this->job_id, 's3bucket' ),
-				'Key'    => $this->file_path,
-			)
-		);
-		
-		return (int) $object['ContentLength'];
 	}
 }
