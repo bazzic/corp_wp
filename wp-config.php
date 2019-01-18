@@ -3,8 +3,9 @@
 
 // Site settings
 
-define('WP_CACHE', true);
-define( 'WPCACHEHOME', '/var/www/html/corp_wp/wp-content/plugins/wp-super-cache/' );
+/** Enable W3 Total Cache */
+define('WP_CACHE', true); // Added by W3 Total Cache
+
 define('WP_HOME','https://www.bazzic.com');
 define('WP_SITEURL','https://www.bazzic.com');
 
