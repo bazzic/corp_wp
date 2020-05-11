@@ -3,7 +3,7 @@
  * Plugin Name: Divi Builder
  * Plugin URI: http://elegantthemes.com
  * Description: A drag and drop page builder for any WordPress theme.
- * Version: 2.19.5
+ * Version: 2.23.3
  * Author: Elegant Themes
  * Author URI: http://elegantthemes.com
  * License: GPLv2 or later
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 define( 'ET_BUILDER_PLUGIN_DIR', trailingslashit( plugin_dir_path( __FILE__ ) ) );
 define( 'ET_BUILDER_PLUGIN_URI', plugins_url('', __FILE__) );
-define( 'ET_BUILDER_PLUGIN_VERSION', '2.19.5' );
+define( 'ET_BUILDER_PLUGIN_VERSION', '2.23.3' );
 
 if ( ! class_exists( 'ET_Dashboard_v2' ) ) {
 	require_once( ET_BUILDER_PLUGIN_DIR . 'dashboard/dashboard.php' );
@@ -158,6 +158,12 @@ class ET_Builder_Plugin extends ET_Dashboard_v2 {
 		et_pb_register_posttypes();
 
 		add_action( 'admin_menu', array( $this, 'add_divi_menu' ));
+		
+		// Check if the plugin was just activated and call for the et_builder_prepare_bfb().
+		if ( 'activated' === get_option( 'et_pb_builder_plugin_status', '' ) ) {
+			et_builder_prepare_bfb();
+			delete_option( 'et_pb_builder_plugin_status' );
+		}
 	}
 
 	function add_divi_menu() {
@@ -301,6 +307,8 @@ add_action( 'plugins_loaded', 'et_divi_builder_maybe_load_core' );
 
 if ( ! function_exists( 'et_divi_builder_setup_thumbnails' ) ) :
 function et_divi_builder_setup_thumbnails() {
+	add_filter( 'theme_locale', 'et_fb_set_builder_locale' );
+
 	add_theme_support( 'post-thumbnails' );
 
 	global $et_theme_image_sizes;
@@ -339,78 +347,27 @@ add_action( 'after_setup_theme', 'et_divi_builder_setup_thumbnails' );
  * @return void
  */
 if ( ! function_exists( 'et_fb_set_builder_locale' ) ) :
-function et_fb_set_builder_locale() {
+function et_fb_set_builder_locale( $locale ) {
 	// apply translations inside VB only
-	if ( empty( $_GET['et_fb'] ) ) {
-		return;
+	if ( empty( $_GET['et_fb'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.NoNonceVerification
+		return $locale;
 	}
 
-	// make sure switch_to_locale() funciton exists. It was introduced in WP 4.7
+	$user = get_user_locale();
+
+	if ( $user === $locale ) {
+		return $locale;
+	}
+
 	if ( ! function_exists( 'switch_to_locale' ) ) {
-		return;
+		return $locale;
 	}
 
-	// do not proceed if user language == website language
-	if ( get_user_locale() === get_locale() ) {
-		return;
-	}
+	switch_to_locale( $user );
 
-	// switch the translation to user language
-	switch_to_locale( get_user_locale() );
-
-	// manually restore the translation for all domains except for the 'et_builder' domain
-	// otherwise entire page will be translated to user language, but we need to apply it to VB interface only.
-
-	/* The below code adapted from WordPress
-
-	  wp-includes/class-wp-locale-switcher.php:
-	    * load_translations()
-
-	  @copyright 2015 by the WordPress contributors.
-	  This program is free software; you can redistribute it and/or modify
-	  it under the terms of the GNU General Public License as published by
-	  the Free Software Foundation; either version 2 of the License, or
-	  (at your option) any later version.
-
-	  This program is distributed in the hope that it will be useful,
-	  but WITHOUT ANY WARRANTY; without even the implied warranty of
-	  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	  GNU General Public License for more details.
-
-	  You should have received a copy of the GNU General Public License
-	  along with this program; if not, write to the Free Software
-	  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-
-	  This program incorporates work covered by the following copyright and
-	  permission notices:
-
-	  b2 is (c) 2001, 2002 Michel Valdrighi - m@tidakada.com - http://tidakada.com
-
-	  b2 is released under the GPL
-
-	  WordPress - Web publishing software
-
-	  Copyright 2003-2010 by the contributors
-
-	  WordPress is released under the GPL */
-
-	global $l10n;
-
-	$domains = $l10n ? array_keys( $l10n ) : array();
-
-	load_default_textdomain( get_locale() );
-
-	foreach ( $domains as $domain ) {
-		if ( 'et_builder' === $domain ) {
-			continue;
-		}
-
-		unload_textdomain( $domain );
-		get_translations_for_domain( $domain );
-	}
+	return $user;
 }
 endif;
-add_action( 'after_setup_theme', 'et_fb_set_builder_locale' );
 
 if ( ! function_exists( 'et_divi_builder_minify_combine_scripts' ) ) :
 function et_divi_builder_minify_combine_scripts( $load ) {
@@ -455,3 +412,28 @@ function et_dbp_body_class_backwards_compatibility( $classes ) {
 }
 add_filter( 'body_class', 'et_dbp_body_class_backwards_compatibility' );
 endif;
+
+/**
+ * Set the plugin activated flag to use it later when needed.
+ */
+function et_builder_set_plugin_activated_flag() {
+	update_option( 'et_pb_builder_plugin_status', 'activated' );
+}
+register_activation_hook( __FILE__, 'et_builder_set_plugin_activated_flag' );
+
+/**
+ * Support Center
+ *
+ * @since ??
+ */
+function et_add_divi_builder_support_center() {
+	// Make sure we don't load it twice
+	if ( ! class_exists( 'ET_Support_Center' ) ) {
+		include_once 'core/components/SupportCenter.php';
+	}
+
+	$support_center = new ET_Support_Center( 'divi_builder_plugin' );
+	$support_center->init();
+}
+
+add_action( 'init', 'et_add_divi_builder_support_center' );

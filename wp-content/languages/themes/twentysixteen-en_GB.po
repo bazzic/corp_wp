@@ -108,7 +108,7 @@ msgstr "Footer social links menu"
 msgid "Footer Primary Menu"
 msgstr "Footer primary menu"
 
-#: functions.php:246
+#: functions.php:267
 msgid "Add widgets here to appear in your sidebar."
 msgstr "Add widgets here to appear in your sidebar."
 
@@ -257,46 +257,46 @@ msgstr "Next image"
 msgid "Previous Image"
 msgstr "Previous image"
 
-#: header.php:49
+#: header.php:50
 msgid "Menu"
 msgstr "Menu"
 
-#: header.php:27
+#: header.php:28
 msgid "Skip to content"
 msgstr "Skip to content"
 
-#: functions.php:386
+#: functions.php:407
 msgid "expand child menu"
 msgstr "expand child menu"
 
-#: functions.php:387
+#: functions.php:408
 msgid "collapse child menu"
 msgstr "collapse child menu"
 
 #. translators: If there are characters in your language that are not supported
 #. by Inconsolata, translate this to 'off'. Do not translate into your own
 #. language.
-#: functions.php:306
+#: functions.php:327
 msgctxt "Inconsolata font: on or off"
 msgid "on"
 msgstr "on"
 
-#: functions.php:256
+#: functions.php:277
 msgid "Content Bottom 1"
 msgstr "Content bottom 1"
 
-#: functions.php:258 functions.php:270
+#: functions.php:279 functions.php:291
 msgid "Appears at the bottom of the content on posts and pages."
 msgstr "Appears at the bottom of the content on posts and pages."
 
-#: functions.php:268
+#: functions.php:289
 msgid "Content Bottom 2"
 msgstr "Content bottom 2"
 
 #. translators: If there are characters in your language that are not supported
 #. by Merriweather, translate this to 'off'. Do not translate into your own
 #. language.
-#: functions.php:296
+#: functions.php:317
 msgctxt "Merriweather font: on or off"
 msgid "on"
 msgstr "on"
@@ -304,20 +304,20 @@ msgstr "on"
 #. translators: If there are characters in your language that are not supported
 #. by Montserrat, translate this to 'off'. Do not translate into your own
 #. language.
-#: functions.php:301
+#: functions.php:322
 msgctxt "Montserrat font: on or off"
 msgid "on"
 msgstr "on"
 
-#: functions.php:244
+#: functions.php:265
 msgid "Sidebar"
 msgstr "Sidebar"
 
-#: functions.php:93 header.php:66
+#: functions.php:93 header.php:67
 msgid "Social Links Menu"
 msgstr "Social links menu"
 
-#: functions.php:92 header.php:53
+#: functions.php:92 header.php:54
 msgid "Primary Menu"
 msgstr "Primary menu"
 

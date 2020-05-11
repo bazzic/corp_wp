@@ -1,3 +1,6 @@
+// Check whether current page is inside (visual) builder or not
+var isBuilder = 'object' === typeof window.ET_Builder;
+
 /*! ET custom.js */
 (function($){
 	window.et_calculating_scroll_position = false;
@@ -33,6 +36,45 @@
 		$et_pb_first_row = $( 'body.et_pb_pagebuilder_layout .et_pb_section:visible:first' ),
 		et_is_touch_device = 'ontouchstart' in window || navigator.maxTouchPoints,
 		$et_top_cart = $('#et-secondary-menu a.et-cart-info');
+
+	// Modification of underscore's _.debounce()
+	// Underscore.js 1.8.3
+	// http://underscorejs.org
+	// (c) 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	// Underscore may be freely distributed under the MIT license.
+	function et_debounce(func, wait, immediate) {
+		var timeout, args, context, timestamp, result;
+
+		var now = Date.now || new Date().getTime();
+
+		var later = function() {
+			var last = now - timestamp;
+
+			if (last < wait && last >= 0) {
+				timeout = setTimeout(later, wait - last);
+			} else {
+				timeout = null;
+				if (!immediate) {
+					result = func.apply(context, args);
+					if (!timeout) context = args = null;
+				}
+			}
+		};
+
+		return function() {
+			context = this;
+			args = arguments;
+			timestamp = now;
+			var callNow = immediate && !timeout;
+			if (!timeout) timeout = setTimeout(later, wait);
+			if (callNow) {
+				result = func.apply(context, args);
+				context = args = null;
+			}
+
+			return result;
+		};
+	};
 
 	function et_preload_image( src, callback ) {
 		var img = new Image();
@@ -196,7 +238,7 @@
 		function et_change_primary_nav_position( delay ) {
 			setTimeout( function() {
 				var $body = $('body'),
-					$wpadminbar = 'undefined' !== typeof window.top ? window.top.jQuery('#wpadminbar') : $('#wpadminbar'),
+					$wpadminbar = isBuilder ? window.top.jQuery('#wpadminbar') : $('#wpadminbar'),
 					$top_header = $( '#top-header' ),
 					et_primary_header_top = 0;
 
@@ -204,7 +246,7 @@
 					var adminbarHeight = $wpadminbar.innerHeight();
 
 					// Adjust admin bar height for builder's preview mode zoom since admin bar is rendered on top window
-					if ('undefined' !== typeof window.top && window.top.jQuery('html').is('.et-fb-preview--zoom:not(.et-fb-preview--desktop)')) {
+					if (isBuilder && window.top.jQuery('html').is('.et-fb-preview--zoom:not(.et-fb-preview--desktop)')) {
 						adminbarHeight = adminbarHeight * 2;
 					}
 
@@ -821,34 +863,32 @@
 		window.et_fix_page_container_position = et_fix_page_container_position;
 
 		// Save container width on page load for reference
-		$et_container.data( 'previous-width', $et_container.width() );
+		$et_container.data('previous-width', parseInt($et_container.width()));
+
+		var update_page_container_position = et_debounce(function () {
+			et_fix_page_container_position();
+			if (typeof et_fix_fullscreen_section === 'function') {
+				et_fix_fullscreen_section();
+			}
+		}, 200);
 
 		$( window ).resize( function(){
 			var window_width                = parseInt( $et_window.width() ),
-				et_container_previous_width = parseInt( $et_container.data('previous-width') ),
+				has_container               = $et_container.length > 0,
+				et_container_previous_width = !has_container ? 0 : parseInt( $et_container.data('previous-width') ),
 				et_container_css_width      = $et_container.css( 'width' ),
 				et_container_width_in_pixel = ( typeof et_container_css_width !== 'undefined' ) ? et_container_css_width.substr( -1, 1 ) !== '%' : '',
-				et_container_actual_width   = ( et_container_width_in_pixel ) ? parseInt( $et_container.width() ) : ( ( parseInt( $et_container.width() ) / 100 ) * window_width ), // $et_container.width() doesn't recognize pixel or percentage unit. It's our duty to understand what it returns and convert it properly
-				containerWidthChanged       = et_container_previous_width !== et_container_actual_width,
+				et_container_actual_width   = !has_container ? 0 : et_container_width_in_pixel ? parseInt( $et_container.width() ) : ( ( parseInt( $et_container.width() ) / 100 ) * window_width ), // $et_container.width() doesn't recognize pixel or percentage unit. It's our duty to understand what it returns and convert it properly
+				containerWidthChanged       = $et_container.length && et_container_previous_width !== et_container_actual_width,
 				$slide_menu_container       = $( '.et_slide_in_menu_container' ),
-				isAppFrame                  = 'undefined' !== typeof window.top,
-				$adminbar                   = isAppFrame ? window.top.jQuery('#wpadminbar') : $('#wpadminbar'),
+				$adminbar                   = isBuilder ? window.top.jQuery('#wpadminbar') : $('#wpadminbar'),
 				page_container_margin;
 
-			if ( et_is_fixed_nav && containerWidthChanged ) {
-				if ( typeof update_page_container_position != 'undefined' ){
-					clearTimeout( update_page_container_position );
-				}
-
-				var update_page_container_position = setTimeout( function() {
-					et_fix_page_container_position();
-					if ( typeof et_fix_fullscreen_section === 'function' ) {
-						et_fix_fullscreen_section();
-					}
-				}, 200 );
+			if (et_is_fixed_nav && containerWidthChanged) {
+				update_page_container_position();
 
 				// Update container width data for future resizing reference
-				$et_container.data('previous-width', et_container_actual_width );
+				$et_container.data('previous-width', et_container_actual_width);
 			}
 
 			if ( et_hide_nav ) {
@@ -856,7 +896,7 @@
 			}
 
 			// Update header and primary adjustment when transitioning across breakpoints or inside visual builder
-			if (($adminbar.length && et_is_fixed_nav && window_width >= 740 && window_width <= 782) || isAppFrame) {
+			if (($adminbar.length && et_is_fixed_nav && window_width >= 740 && window_width <= 782) || isBuilder) {
 				et_calculate_header_values();
 
 				et_change_primary_nav_position( 0 );
@@ -902,6 +942,10 @@
 			et_set_right_vertical_menu();
 		} );
 
+		if (isBuilder && jQuery('.et_header_style_fullscreen .et_slide_in_menu_container').length > 0) {
+			jQuery(window).resize(et_pb_resize_fullscreen_menu);
+		}
+
 		$( window ).ready( function(){
 			if ( $.fn.fitVids ) {
 				$( '#main-content' ).fitVids( { customSelector: "iframe[src^='http://www.hulu.com'], iframe[src^='http://www.dailymotion.com'], iframe[src^='http://www.funnyordie.com'], iframe[src^='https://embed-ssl.ted.com'], iframe[src^='http://embed.revision3.com'], iframe[src^='https://flickr.com'], iframe[src^='http://blip.tv'], iframe[src^='http://www.collegehumor.com']"} );
@@ -939,8 +983,12 @@
 				}
 			}
 
-			if ( $('p.demo_store').length ) {
-				$('#footer-bottom').css('margin-bottom' , $('p.demo_store').innerHeight());
+			if ( $('p.demo_store').length && $('p.demo_store').is(':visible') ) {
+				$('#footer-bottom').css('margin-bottom', $('p.demo_store').innerHeight());
+
+				$('.woocommerce-store-notice__dismiss-link').click(function() {
+					$('#footer-bottom').css('margin-bottom', '');
+				});
 			}
 
 			if ( $.fn.waypoint ) {
@@ -1200,11 +1248,8 @@
 		};
 
 		if ($('body').is('.et-fb, .et-bfb')) {
-			var _ = window._ || window.top && window.top._;
-			if (_) {
-				// Debounce slow function
-				window.et_pb_side_nav_page_init = _.debounce(window.et_pb_side_nav_page_init, 200);
-			}
+			// Debounce slow function
+			window.et_pb_side_nav_page_init = et_debounce(window.et_pb_side_nav_page_init, 200);
 		}
 
 		et_pb_side_nav_page_init();
@@ -1519,6 +1564,7 @@
 
 		$menu_container.toggleClass( 'et_pb_fullscreen_menu_opened' );
 		$( 'body' ).toggleClass( 'et_pb_fullscreen_menu_active' );
+		et_pb_resize_fullscreen_menu();
 
 		if ( $menu_container.hasClass( 'et_pb_fullscreen_menu_opened' ) ) {
 			$menu_container.addClass( 'et_pb_fullscreen_menu_animated' );
@@ -1529,6 +1575,22 @@
 			setTimeout( function() {
 				$menu_container.removeClass( 'et_pb_fullscreen_menu_animated' );
 			}, 1000 );
+		}
+	}
+
+	function et_pb_resize_fullscreen_menu(e) {
+		if (isBuilder) {
+			var $menu = jQuery('.et_header_style_fullscreen .et_slide_in_menu_container.et_pb_fullscreen_menu_opened');
+			if ($menu.length > 0) {
+				var height = jQuery(window.top).height();
+				// Account for padding
+				height -= parseInt($menu.css('padding-top'), 10);
+				// and AdminBar
+				if ($menu.closest('.admin-bar').length > 0) {
+					height -= 32;
+				}
+				$menu.find('.et_pb_fullscreen_nav_container').css('max-height', height);
+			}
 		}
 	}
 

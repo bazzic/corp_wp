@@ -8,9 +8,15 @@
 function et_fb_app_boot( $content ) {
 	// Instances of React app
 	static $instances = 0;
+	$is_new_page = isset( $_GET['is_new_page'] ) && '1' === $_GET['is_new_page'];
 
 	// Don't boot the app if the builder is not in use
 	if ( ! et_pb_is_pagebuilder_used( get_the_ID() ) || doing_filter( 'get_the_excerpt' ) ) {
+		// Skip this when content should be loaded from other post or page to not mess with the default content
+		if ( $is_new_page ) {
+			return;
+		}
+
 		return $content;
 	}
 
@@ -26,7 +32,8 @@ function et_fb_app_boot( $content ) {
 		// This happens in 2017 theme when multiple Divi enabled pages are assigned to Front Page Sections
 		$instances++;
 		$output = sprintf( '<div id="et-fb-app"%1$s></div>', $class );
-		if ( $instances > 1 ) {
+		// No need to add fallback content on a new page.
+		if ( $instances > 1 && ! $is_new_page ) {
 			// uh oh, we might have multiple React app in the same page, let's also add rendered content and deal with it later using JS
 			$output .= sprintf( '<div class="et_fb_fallback_content" style="display: none">%s</div>', $content );
 			// Stop shortcode object processor so that shortcode in the content are treated normaly.
@@ -156,7 +163,7 @@ add_filter( 'admin_body_class', 'et_fb_add_admin_body_class' );
 
 /**
  * Remove visual builder preloader classname on BFB because BFB spins the preloader on parent level to avoid flash of unstyled elements
- * 
+ *
  * @param string builder preloader classname
  * @return string modified builder preloader classname
  */
@@ -197,7 +204,7 @@ function et_builder_inject_preboot_script() {
 	}
 
 	echo "
-		<script>
+		<script id='et-builder-preboot'>
 			var et_fb_preboot = { debug: {$is_debug}, is_BFB: {$is_BFB} };
 
 			// Disable Google Tag Manager

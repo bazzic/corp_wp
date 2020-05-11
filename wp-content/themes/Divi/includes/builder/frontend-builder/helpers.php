@@ -146,7 +146,13 @@ function et_fb_get_dynamic_backend_helpers() {
 		'status'      => get_site_option( 'et_account_status', 'not_active' ),
 	);
 
+	// In some cases when page created using Polylang
+	// it may have predefined content, so inital content is not empty.
+	$has_predefined_content = isset( $_GET['from_post'] ) && 'empty' !== $_GET['from_post'] ? 'yes' : 'no';
+
 	$helpers = array(
+		'site_url'                     => get_site_url(),
+		'locale'                       => get_user_locale(),
 		'debug'                        => defined( 'ET_DEBUG' ) && ET_DEBUG,
 		'postId'                       => $post_id,
 		'postTitle'                    => $post_title,
@@ -155,6 +161,7 @@ function et_fb_get_dynamic_backend_helpers() {
 		'layoutType'                   => $layout_type,
 		'layoutScope'                  => $layout_scope,
 		'layoutBuiltFor'               => $layout_built_for,
+		'hasPredefinedContent'         => $has_predefined_content,
 		'publishCapability'            => ( is_page() && ! current_user_can( 'publish_pages' ) ) || ( ! is_page() && ! current_user_can( 'publish_posts' ) ) ? 'no_publish' : 'publish',
 		'ajaxUrl'                      => is_ssl() ? admin_url( 'admin-ajax.php' ) : admin_url( 'admin-ajax.php', 'http' ),
 		'et_account'                   => $et_account,
@@ -166,6 +173,9 @@ function et_fb_get_dynamic_backend_helpers() {
 		'gmt_offset_string'            => et_pb_get_gmt_offset_string(),
 		'currentUserDisplayName'       => $current_user->display_name,
 		'currentRole'                  => et_pb_get_current_user_role(),
+		'currentUserCapabilities'      => array(
+			'manageOptions' => current_user_can( 'manage_options' ),
+		),
 		'exportUrl'                    => et_fb_get_portability_export_url(),
 		'nonces'                       => et_fb_get_nonces(),
 		'currentPage'                  => et_fb_current_page_params(),
@@ -188,6 +198,19 @@ function et_fb_get_dynamic_backend_helpers() {
 		'abTesting'                    => et_builder_ab_options( $post->ID ),
 		'conditionalTags'              => et_fb_conditional_tag_params(),
 		'commentsModuleMarkup'         => et_fb_get_comments_markup(),
+		/**
+		 * Filters taxonomies array.
+		 *
+		 * @param array Array of all registered taxonomies.
+		 */
+		'getTaxonomies'                => apply_filters( 'et_fb_taxonomies', et_fb_get_taxonomy_terms() ),
+
+		/**
+		 * Filters taxonomy labels.
+		 *
+		 * @param array Array of labels for all registered taxonomies.
+		 */
+		'getTaxonomyLabels'            => apply_filters( 'et_fb_taxonomy_labels', et_fb_get_taxonomy_labels() ),
 		'urls'                         => array(
 			'loginFormUrl'             => esc_url( site_url( 'wp-login.php', 'login_post' ) ),
 			'forgotPasswordUrl'        => esc_url( wp_lostpassword_url() ),
@@ -199,6 +222,7 @@ function et_fb_get_dynamic_backend_helpers() {
 			'moduleCustomizerUrl'      => et_pb_is_allowed( 'theme_customizer' ) ? add_query_arg( array( 'et_customizer_option_set' => 'module', 'url' => urlencode( $current_url ) ), admin_url( 'customize.php' ) ) : false,
 			'roleEditorUrl'            => current_user_can( 'manage_options' ) ? add_query_arg( array( 'page' => 'et_divi_role_editor' ), admin_url( 'admin.php' ) ) : false,
 			'manageLibraryUrl'         => current_user_can( 'manage_options' ) ? add_query_arg( array( 'post_type' => 'et_pb_layout' ), admin_url( 'edit.php' ) ) : false,
+			'ajaxUrl'                  => is_ssl() ? admin_url( 'admin-ajax.php' ) : admin_url( 'admin-ajax.php', 'http' ),
 		),
 		'defaults'                     => array(
 			'et_pb_countdown_timer' => array(
@@ -278,7 +302,6 @@ function et_fb_get_static_backend_helpers($post_type) {
 	 * @var array $helpers
 	 */
 	$helpers = array(
-		'site_url'                     => get_site_url(),
 		'blog_id'                      => get_current_blog_id(),
 		'autosaveInterval'             => et_builder_autosave_interval(),
 		'isCustomPostType'             => et_builder_is_post_type_custom( $post_type ) ? 'yes' : 'no',
@@ -320,7 +343,7 @@ function et_fb_get_static_backend_helpers($post_type) {
 				'className'       => 'accent-purple',
 				'imgSrc'          => 'premade.png',
 				'imgSrcHover'     => 'premade.gif',
-				'titleText'       => esc_html__( 'Choose a premade Layout' ),
+				'titleText'       => esc_html__( 'Choose a premade Layout', 'et_builder' ),
 				'descriptionText' => esc_html__( 'Choose from hundreds of world-class premade layouts or start from any of your existing saved layouts.', 'et_builder' ),
 				'buttonText'      => esc_html__( 'Browse Layouts', 'et_builder' ),
 				'permission'      => array( 'load_layout' ),
@@ -398,25 +421,13 @@ function et_fb_get_static_backend_helpers($post_type) {
 		'builderVersion'               => ET_BUILDER_PRODUCT_VERSION,
 		'failureNotification'          => et_builder_get_failure_notification_modal(),
 		'noBuilderSupportNotification' => et_builder_get_no_builder_notification_modal(),
+		'noBrowserSupportNotification' => et_builder_get_no_browser_notification_modal(),
 		'exitNotification'             => et_builder_get_exit_notification_modal(),
 		'browserAutosaveNotification'  => et_builder_get_browser_autosave_notification_modal(),
 		'serverAutosaveNotification'   => et_builder_get_server_autosave_notification_modal(),
 		'unsavedNotification'          => et_builder_get_unsaved_notification_modal(),
 		'backupLabel'                  => __( 'Backup of %s', 'et_builder' ),
 
-		/**
-		 * Filters taxonomies array.
-		 *
-		 * @param array Array of all registered taxonomies.
-		 */
-		'getTaxonomies'                => apply_filters( 'et_fb_taxonomies', et_fb_get_taxonomy_terms() ),
-
-		/**
-		 * Filters taxonomy labels.
-		 *
-		 * @param array Array of labels for all registered taxonomies.
-		 */
-		'getTaxonomyLabels'            => apply_filters( 'et_fb_taxonomy_labels', et_fb_get_taxonomy_labels() ),
 		'googleAPIKey'                 => et_pb_is_allowed( 'theme_options' ) ? get_option( 'et_google_api_settings' ) : '',
 		'useGoogleFonts'               => $use_google_fonts,
 		'googleFontsList'              => array_keys( $google_fonts ),
@@ -430,7 +441,6 @@ function et_fb_get_static_backend_helpers($post_type) {
 		'fontIconsDown'                => et_pb_get_font_down_icon_symbols(),
 		'widgetAreas'                  => et_builder_get_widget_areas_list(),
 		'et_builder_fonts_data'        => et_builder_get_fonts(),
-		'locale'                       => get_locale(),
 		'roleSettings'                 => et_pb_get_role_settings(),
 		'optionsCategoriesPermissions' => array_keys( ET_Builder_Element::get_options_categories() ),
 		'classNames'                   => array(
@@ -855,9 +865,10 @@ function et_fb_get_static_backend_helpers($post_type) {
 						'max'  => 100,
 						'step' => 1,
 					),
-					'default'         => intval( ET_Global_Settings::get_value( 'all_background_gradient_start_position' ) ),
+					'default'         => ET_Global_Settings::get_value( 'all_background_gradient_start_position' ),
 					'validate_unit'   => true,
-					'fixed_unit'      => '%',
+					'allowed_units'   => array( '%', 'em', 'rem', 'px', 'cm', 'mm', 'in', 'pc', 'ex', 'vh', 'vw' ),
+					'default_unit'    => '%',
 					'fixed_range'     => true,
 					'depends_show_if' => 'on',
 					'depends_on'      => array(
@@ -876,9 +887,10 @@ function et_fb_get_static_backend_helpers($post_type) {
 						'max'  => 100,
 						'step' => 1,
 					),
-					'default'         => intval( ET_Global_Settings::get_value( 'all_background_gradient_end_position' ) ),
+					'default'         => ET_Global_Settings::get_value( 'all_background_gradient_end_position' ),
 					'validate_unit'   => true,
-					'fixed_unit'      => '%',
+					'allowed_units'   => array( '%', 'em', 'rem', 'px', 'cm', 'mm', 'in', 'pc', 'ex', 'vh', 'vw' ),
+					'default_unit'    => '%',
 					'fixed_range'     => true,
 					'depends_show_if' => 'on',
 					'depends_on'      => array(
@@ -986,7 +998,7 @@ function et_fb_get_static_backend_helpers($post_type) {
 			),
 			'advanced'                => array(
 				'padding_%s'          => array(
-					'label'           => esc_html__( 'Column %s Custom Padding', 'et_builder' ),
+					'label'           => esc_html__( 'Column %s Padding', 'et_builder' ),
 					'type'            => 'custom_padding',
 					'mobile_options'  => true,
 					'option_category' => 'layout',
@@ -995,6 +1007,7 @@ function et_fb_get_static_backend_helpers($post_type) {
 					'toggle_slug'     => 'margin_padding',
 					'sub_toggle'      => 'column_%s',
 					'hover'           => 'tabs',
+					'allowed_units'   => array( '%', 'em', 'rem', 'px', 'cm', 'mm', 'in', 'pt', 'pc', 'ex', 'vh', 'vw' ),
 				),
 			),
 			'css'                     => array(
@@ -1060,7 +1073,7 @@ function et_fb_get_static_backend_helpers($post_type) {
 		),
 		'background' => array(
 			'label'       => __( 'Background', 'et_builder' ),
-			'description' => '',
+			'description' => esc_html__( 'Adjust the background style of this element by customizing the background color, gradient, image and video.', 'et_builder' ),
 		),
 		'column' => array(
 			'backgroundColor' => esc_html__( 'Column %s Background', 'et_builder' ),
@@ -1336,6 +1349,7 @@ function et_fb_get_static_backend_helpers($post_type) {
 				'roll'   => esc_html__( 'Roll', 'et_builder' ),
 			),
 			'cssText'                  => esc_html__( 'CSS', 'et_builder'),
+			'cssSelector'              => esc_html__( 'CSS added here will target the following class:', 'et_builder' ),
 			'hoverOptions'             => array(
 				'default' => esc_html__( 'Default', 'et_builder' ),
 				'hover'   => esc_html__( 'Hover', 'et_builder' ),
@@ -1808,6 +1822,7 @@ function et_fb_get_static_backend_helpers($post_type) {
 				'cancel'         => esc_html__( 'Discard All Changes', 'et_builder' ),
 				'save'           => esc_html__( 'Save Changes', 'et_builder' ),
 				'close'          => esc_html__( 'Close', 'et_builder' ),
+				'rightMenu'      => esc_html__( 'Other Settings', 'et_builder' ),
 			),
 			'inlineEditor' => array(
 				'back'             => esc_html__( 'Go Back', 'et_builder' ),
@@ -1845,6 +1860,7 @@ function et_fb_get_static_backend_helpers($post_type) {
 					'addToLibrary' => esc_html__( 'Save Section To Library', 'et_builder' ),
 					'delete'       => esc_html__( 'Delete Section', 'et_builder' ),
 					'exit'         => esc_html__( 'Exit Section', 'et_builder' ),
+					'rightMenu'    => esc_html__( 'Other Section Settings', 'et_builder' ),
 				),
 				'addButton' => esc_html__( 'Add New Section', 'et_builder' ),
 			),
@@ -1857,6 +1873,7 @@ function et_fb_get_static_backend_helpers($post_type) {
 					'delete'       => esc_html__( 'Delete Row', 'et_builder' ),
 					'exit'         => esc_html__( 'Exit Row', 'et_builder' ),
 					'update'       => esc_html__( 'Change Column Structure', 'et_builder' ),
+					'rightMenu'    => esc_html__( 'Other Row Settings', 'et_builder' ),
 				),
 				'addButton' => esc_html__( 'Add New Row', 'et_builder' ),
 				'chooseColumn' => esc_html__( 'Choose Column Structure', 'et_builder' ),
@@ -1869,6 +1886,7 @@ function et_fb_get_static_backend_helpers($post_type) {
 					'addToLibrary' => esc_html__( 'Save Module To Library', 'et_builder' ),
 					'delete'       => esc_html__( 'Delete Module', 'et_builder' ),
 					'exit'         => esc_html__( 'Exit Module', 'et_builder' ),
+					'rightMenu'    => esc_html__( 'Other Module Settings', 'et_builder' ),
 				),
 				'addButton' => esc_html__( 'Add New Module', 'et_builder' ),
 			),
@@ -1884,10 +1902,25 @@ function et_fb_get_static_backend_helpers($post_type) {
 			),
 		),
 		'errorBoundaries'     => array(
-			'noDisplay' => esc_html__( 'could not be displayed', 'et_builder' ),
-			'hideError' => esc_html__( 'hide error message', 'et_builder' ),
-			'showError' => esc_html__( 'show error message', 'et_builder' ),
-			'component' => esc_html__( 'Component', 'et_builder' ),
+			'title'            => esc_html__( 'Oops! An Error Has Occurred', 'et_builder' ),
+			'message'          => esc_html__( 'This content could not be displayed. Please report this error to our team so that we can fix it and then save and reload the builder.', 'et_builder' ),
+			'messageNonAdmin'  => esc_html__( 'This content could not be displayed. Click the button below to save and reload the builder', 'et_builder' ),
+			'buttonReport'     => esc_html__( 'Report This Error', 'et_builder' ),
+			'buttonSaveReload' => esc_html__( 'Save and Reload', 'et_builder' ),
+			'modal' => array(
+				'title'                => esc_html__( 'Report An Error', 'et_builder' ),
+				'noAccountMessage'     => esc_html__( 'Elegant Themes username and API key have not been configured on this site. Error reporting requires username and API key to work.', 'et_builder' ),
+				'noAccountGuide'       => esc_html__( 'Click the button below, then go to Updates tab.', 'et_builder' ),
+				'noAccountButtonLabel' => esc_html__( 'Configure username and API key', 'et_builder' ),
+				'consentTitle'         => esc_html__( 'Data Transfer Agreement', 'et_builder' ),
+				'consentDescription'   => esc_html__( 'The following information will be sent to our team when you submit an error report. This includes the complete content of this page, a detailed error report, and basic information about your website such as which plugins you have installed, which software versions you are using and more. The full list of data transfered in this report will include the following:', 'et_builder' ),
+				'consentLabel'         => esc_html__( 'I agree to transfer this data to Elegant Themes.', 'et_builder' ),
+				'buttonLabel'          => esc_html__( 'Send Error Report', 'et_builder' ),
+				'successMessage'       => esc_html__( 'Thank you for reporting this issue. Your report has been successfully sent.', 'et_builder' ),
+				'successAutoclose'     => esc_html__( 'This message will be automatically closed in 3 seconds.', 'et_builder' ),
+				'debugInfo'            => ET_Builder_Error_Report::get_debug_info(),
+				'errorMessage'         => esc_html__( 'An error occurred, please try again.', 'et_builder' ),
+			),
 		),
 		/**
 		 * @todo update vbSupport['modalSupportNotices']['off'] and vbSupport['modalSupportNotices']['partial'] once the documentation page is ready
@@ -1930,9 +1963,10 @@ function et_fb_get_static_backend_helpers($post_type) {
 
 // Used to update the content of the cached helper js file.
 function et_fb_get_asset_helpers( $content, $post_type ) {
+	$helpers = et_fb_get_static_backend_helpers( $post_type );
 	return sprintf(
 		'window.ETBuilderBackend = jQuery.extend(true, %s, window.ETBuilderBackendDynamic)',
-		json_encode( et_fb_get_static_backend_helpers( $post_type ) )
+		et_fb_remove_site_url_protocol( wp_json_encode( $helpers, ET_BUILDER_JSON_ENCODE_OPTIONS ) )
 	);
 }
 add_filter( 'et_fb_get_asset_helpers', 'et_fb_get_asset_helpers', 10, 2 );
@@ -1943,8 +1977,10 @@ function et_fb_backend_helpers() {
 
 	if ( wp_script_is( 'et-dynamic-asset-helpers', 'enqueued' ) ) {
 		// New loading method
-		$post_id = isset( $post->ID ) ? $post->ID : false;
-		$layout_type = '';
+		$custom_post_id  = isset( $_GET['custom_page_id'] ) ? $_GET['custom_page_id'] : false;
+		$current_post_id = isset( $post->ID ) ? $post->ID : false;
+		$post_id         = $custom_post_id ? $custom_post_id : $current_post_id;
+		$layout_type     = '';
 
 		if ( 'et_pb_layout' === $post_type ) {
 			$layout_type = et_fb_get_layout_type( $post_id );
@@ -1979,7 +2015,7 @@ function et_fb_fix_plugin_conflicts() {
 	// Disable Autoptimize plugin
 	remove_action( 'init', 'autoptimize_start_buffering', -1 );
 	remove_action( 'template_redirect', 'autoptimize_start_buffering', 2 );
-	
+
 	// Disable WP Super Cache when loading Divi Builder
 	if ( ! defined( 'DONOTCACHEPAGE' ) ) {
 		define( 'DONOTCACHEPAGE', true );
@@ -1991,15 +2027,23 @@ endif;
  * Convert string to camel case format.
  *
  * @param string $string Original string data.
- * @param bool $separator String separator.
+ * @param array  $noStrip Additional regex pattern exclusion.
  *
  * @return string
  */
 if ( ! function_exists( 'et_fb_camel_case' ) ) :
-	function et_fb_camel_case( $string, $separator = '-' ) {
-		$strings = explode( $separator, strtolower( $string ) );
+	function et_fb_camel_case( $string, $noStrip = array() ) {
+		$words = preg_split( '/[^a-zA-Z0-9' . implode( '', $noStrip ) . ']+/i', strtolower( $string ) );
 
-		return lcfirst( implode( '', array_map( 'ucwords', $strings ) ) );
+		if ( count( $words ) === 1 ) {
+			return $words[0];
+		}
+
+		$camel_cased = implode( '', array_map( 'ucwords', $words ) );
+
+		$camel_cased[0] = strtolower( $camel_cased[0] );
+
+		return $camel_cased;
 	}
 endif;
 

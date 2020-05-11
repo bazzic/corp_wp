@@ -1,9 +1,7 @@
 # BEGIN WordPress
 <IfModule mod_rewrite.c>
 RewriteEngine On
-#RewriteCond %{HTTP_HOST} ^bazzic.com [NC,OR]
-#RewriteCond %{HTTP_HOST} ^www.bazzic.com [NC]
-#RewriteRule ^(.*)$ https://www.bazzic.com/$1 [L,R=301,NC]
+RewriteBase /
 RewriteRule ^index\.php$ - [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

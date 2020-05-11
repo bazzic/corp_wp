@@ -5,30 +5,11 @@
  * Description: WordPress Backup Plugin
  * Author: Inpsyde GmbH
  * Author URI: http://inpsyde.com
- * Version: 3.6.6
+ * Version: 3.6.10
  * Text Domain: backwpup
  * Domain Path: /languages/
  * Network: true
- * License: GPLv3
- * License URI: http://www.gnu.org/licenses/gpl-3.0
- */
-
-/**
- *    Copyright (C) 2012-2016 Inpsyde GmbH (email: info@inpsyde.com)
- *
- *    This program is free software; you can redistribute it and/or
- *    modify it under the terms of the GNU General Public License
- *    as published by the Free Software Foundation; either version 2
- *    of the License, or (at your option) any later version.
- *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
- *
- *    You should have received a copy of the GNU General Public License
- *    along with this program; if not, write to the Free Software
- *    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * License: GPLv2+
  */
 
 if ( ! class_exists( 'BackWPup', false ) ) {
@@ -67,7 +48,7 @@ if ( ! class_exists( 'BackWPup', false ) ) {
 
 			$this->set_autoloader();
 
-			self::$is_pro = class_exists( 'BackWPup_Pro', true );
+            self::$is_pro = file_exists(__DIR__ . '/inc/Pro/class-pro.php');
 
 			// Start upgrade if needed
 			if ( get_site_option( 'backwpup_version' ) !== self::get_plugin_data( 'Version' )
@@ -76,10 +57,11 @@ if ( ! class_exists( 'BackWPup', false ) ) {
 				BackWPup_Install::activate();
 			}
 
-			// Load pro features
-			if ( self::$is_pro ) {
-				BackWPup_Pro::get_instance();
-			}
+            // Load pro features
+            if (self::$is_pro) {
+                require_once untrailingslashit(__DIR__) . '/inc/Pro/autoupdate.php';
+                BackWPup_Pro::get_instance();
+            }
 
 			// WP-Cron
 			if ( defined( 'DOING_CRON' ) && DOING_CRON ) {
@@ -206,7 +188,7 @@ if ( ! class_exists( 'BackWPup', false ) ) {
 				     || strlen(
 					        self::$plugin_data['hash']
 				        ) > 12 ) {
-					self::$plugin_data['hash'] = substr( md5( md5( __FILE__ ) ), 14, 6 );
+					self::$plugin_data['hash'] = self::get_generated_hash(6);
 					update_site_option( 'backwpup_cfg_hash', self::$plugin_data['hash'] );
 				}
 				if ( defined( 'WP_TEMP_DIR' ) && is_dir( WP_TEMP_DIR ) ) {
@@ -243,6 +225,25 @@ if ( ! class_exists( 'BackWPup', false ) ) {
 				return self::$plugin_data;
 			}
 		}
+
+        /**
+         * Generates a random hash
+         *
+         * @param int $length
+         *
+         * @return string
+         */
+		public static function get_generated_hash( $length = 6 ) {
+
+		    $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+            $hash = '';
+            for ( $i = 0; $i < 254; $i++ ) {
+                $hash .= $chars[mt_rand(0, 61)];
+            }
+
+            return substr(md5($hash), mt_rand(0, 31 - $length), $length);
+        }
 
 		/**
 		 * Load Plugin Translation
@@ -338,7 +339,7 @@ if ( ! class_exists( 'BackWPup', false ) ) {
 				),
 				'can_sync' => false,
 				'needed' => array(
-					'mphp_version' => '',
+					'php_version' => '',
 					'functions' => array( 'ftp_nb_fput' ),
 					'classes' => array(),
 				),
@@ -370,16 +371,11 @@ if ( ! class_exists( 'BackWPup', false ) ) {
 				),
 				'can_sync' => false,
 				'needed' => array(
-					'php_version' => '5.3.3',
+					'php_version' => '5.5.0',
 					'functions' => array( 'curl_exec' ),
 					'classes' => array( 'XMLWriter' ),
 				),
-				'autoload' => array(
-					'Aws\\Common' => dirname( __FILE__ ) . '/vendor',
-					'Aws\\S3' => dirname( __FILE__ ) . '/vendor',
-					'Symfony\\Component\\EventDispatcher' => dirname( __FILE__ ) . '/vendor',
-					'Guzzle' => dirname( __FILE__ ) . '/vendor',
-				),
+				'autoload' => array(),
 			);
 			// backup to MS Azure
 			self::$registered_destinations['MSAZURE'] = array(
@@ -391,7 +387,7 @@ if ( ! class_exists( 'BackWPup', false ) ) {
 				),
 				'can_sync' => false,
 				'needed' => array(
-					'php_version' => '5.3.2',
+					'php_version' => '',
 					'functions' => array(),
 					'classes' => array(),
 				),
